@@ -74,6 +74,25 @@ for additional branch/tag checkouts under `$PROJ_DIR/deps`. Set
 `COQHAMMER_ROCQ_SOURCE_DIR` only to use an existing checkout outside AGM and
 outside `$PROJ_DIR/deps`.
 
+Since Rocq 9.0 the standard library ships in a separate repository, so a source
+build of Rocq does not include it. When `COQHAMMER_ROCQ_SOURCE_REF` is set,
+`setup.sh` additionally builds and installs the standard library against the
+freshly built Rocq. Otherwise the switch is left without the `Stdlib` library
+that CoqHammer requires. Defaults:
+
+```bash
+COQHAMMER_STDLIB_SOURCE_REF="$COQHAMMER_ROCQ_SOURCE_REF"
+COQHAMMER_STDLIB_SOURCE_REPO="https://github.com/rocq-prover/stdlib.git"
+COQHAMMER_STDLIB_DEP_NAME="stdlib"
+COQHAMMER_STDLIB_SOURCE_DIR=""
+```
+
+The stdlib ref defaults to the Rocq source ref, which matches for branches such
+as `master`. When they diverge (for example the Rocq tag `V9.1.1` has no stdlib
+counterpart), set `COQHAMMER_STDLIB_SOURCE_REF` to the matching stdlib
+branch/tag. The stdlib knobs mirror the Rocq ones and only take effect during a
+source build.
+
 ## Branch-Specific Configuration
 
 AGM sources project config first, then branch config. For branch `B`, create:

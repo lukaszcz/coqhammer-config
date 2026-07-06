@@ -19,6 +19,14 @@ export COQHAMMER_ROCQ_SOURCE_REPO="${COQHAMMER_ROCQ_SOURCE_REPO:-https://github.
 export COQHAMMER_ROCQ_DEP_NAME="${COQHAMMER_ROCQ_DEP_NAME:-rocq}"
 export COQHAMMER_ROCQ_SOURCE_DIR="${COQHAMMER_ROCQ_SOURCE_DIR:-}"
 
+# Since Rocq 9.0 the standard library lives in a separate repository and must be
+# built alongside a source build of Rocq. These only take effect when
+# COQHAMMER_ROCQ_SOURCE_REF is set; the ref defaults to the Rocq source ref.
+export COQHAMMER_STDLIB_SOURCE_REF="${COQHAMMER_STDLIB_SOURCE_REF:-$COQHAMMER_ROCQ_SOURCE_REF}"
+export COQHAMMER_STDLIB_SOURCE_REPO="${COQHAMMER_STDLIB_SOURCE_REPO:-https://github.com/rocq-prover/stdlib.git}"
+export COQHAMMER_STDLIB_DEP_NAME="${COQHAMMER_STDLIB_DEP_NAME:-stdlib}"
+export COQHAMMER_STDLIB_SOURCE_DIR="${COQHAMMER_STDLIB_SOURCE_DIR:-}"
+
 case ":$PATH:" in
   *":$COQHAMMER_OPAM_SWITCH/_opam/bin:"*) ;;
   *) export PATH="$COQHAMMER_OPAM_SWITCH/_opam/bin:$PATH" ;;
