@@ -47,8 +47,8 @@ Coq/Rocq version constraints from the local opam files.
 
 ## Build Rocq From Source
 
-Set `COQHAMMER_ROCQ_SOURCE_REF` to build Rocq from git instead of using the opam
-Rocq/Coq package:
+Set `COQHAMMER_ROCQ_SOURCE_REF` to build Rocq from an AGM-managed git dependency
+instead of using the opam Rocq/Coq package:
 
 ```bash
 export COQHAMMER_ROCQ_SOURCE_REF=main
@@ -64,11 +64,15 @@ Defaults:
 
 ```bash
 COQHAMMER_ROCQ_SOURCE_REPO="https://github.com/rocq-prover/rocq.git"
-COQHAMMER_ROCQ_SOURCE_DIR="$PROJ_DIR/deps/rocq-src/$COQHAMMER_ROCQ_SOURCE_REF"
+COQHAMMER_ROCQ_DEP_NAME="rocq"
+COQHAMMER_ROCQ_SOURCE_DIR=""
 ```
 
-Override `COQHAMMER_ROCQ_SOURCE_REPO` for a fork, or
-`COQHAMMER_ROCQ_SOURCE_DIR` to reuse a specific local checkout.
+Override `COQHAMMER_ROCQ_SOURCE_REPO` for a fork before the AGM dependency is
+created. `setup.sh` runs `agm dep new` for the first checkout and `agm dep switch`
+for additional branch/tag checkouts under `$PROJ_DIR/deps`. Set
+`COQHAMMER_ROCQ_SOURCE_DIR` only to use an existing checkout outside AGM and
+outside `$PROJ_DIR/deps`.
 
 ## Branch-Specific Configuration
 
