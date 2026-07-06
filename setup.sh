@@ -34,6 +34,15 @@ stdlib_source_repo="${COQHAMMER_STDLIB_SOURCE_REPO:-https://github.com/rocq-prov
 stdlib_dep_name="${COQHAMMER_STDLIB_DEP_NAME:-stdlib}"
 stdlib_source_dir="${COQHAMMER_STDLIB_SOURCE_DIR:-}"
 
+# AGM injects env vars for declared deps (e.g. ROCQ=$PROJ_DIR/deps/rocq/master
+# for a `rocq` dep). opam and rocq_makefile both honour these: rocq_makefile
+# uses $ROCQ as the compiler binary, so an inherited value pointing at a Rocq
+# source *directory* makes every stdlib .vo rule fail with "Permission denied"
+# (exit 126). Clear them globally before any opam operation so they can never
+# leak into an opam build; source builds below resolve Rocq from `agm dep`
+# checkout paths and PATH, not from these variables.
+unset ROCQ ROCQBIN ROCQMAKEFILE ROCQLIB COQBIN COQC COQDEP COQLIB
+
 ensure_switch() {
   if [ ! -d "$switch/_opam" ]; then
     echo "Creating workspace opam switch: $switch"
@@ -171,11 +180,8 @@ install_source_stdlib() {
       echo "No rocq-stdlib.opam found in $stdlib_dir" >&2
       exit 1
     fi
-    # rocq_makefile honours these variables from the environment, so an inherited
-    # value (e.g. ROCQ pointing at a Rocq source checkout) would be used instead
-    # of the `rocq` we just installed. Clear them so the build resolves `rocq`
-    # from PATH, which the switch has set to this switch's binaries.
-    unset ROCQ ROCQBIN ROCQMAKEFILE COQBIN COQC COQDEP COQLIB ROCQLIB
+    # The Rocq/Coq env-var pointers were cleared globally at the top of this
+    # script, so rocq_makefile resolves `rocq` from PATH (this switch's bin).
     # The stdlib builds with rocq_makefile against the installed `rocq`; this
     # mirrors rocq-stdlib.opam's own build/install commands.
     make -j"$(nproc)"
