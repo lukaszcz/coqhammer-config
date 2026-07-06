@@ -92,10 +92,9 @@ export COQHAMMER_ROCQ_VERSION=9.1.1
 export COQHAMMER_ROCQ_SOURCE_REF=main
 ```
 
-Then open or set up the workspace normally:
+Then open the workspace normally; `agm open` runs setup automatically:
 
 ```bash
 agm open B
-agm workspace setup
 ```
 
