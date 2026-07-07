@@ -30,19 +30,37 @@ Without overrides, `setup.sh` installs dependencies from:
 ```
 
 That means the Rocq/Coq version is selected by the opam constraints in the
-checked-out branch.
+checked-out branch. Since the Rocq rename (Rocq >= 9.0) those constraints name
+`rocq-core` and `rocq-stdlib`; the deprecated `coq` meta-package is used only on
+the older Coq (< 9.0) branches.
 
-## Force an Opam Rocq/Coq Version
+## Pin Opam Rocq Packages
 
-Set these in a workspace or branch-specific `env.sh`:
+Set `COQHAMMER_ROCQ_PACKAGES` in a workspace or branch-specific `env.sh` to a
+space-separated list of opam packages (each a bare `pkg` or a pinned
+`pkg.version`) to install explicitly before the CoqHammer dependencies:
 
 ```bash
-export COQHAMMER_ROCQ_PACKAGE=coq
+export COQHAMMER_ROCQ_PACKAGES="rocq-core.9.2.0 rocq-stdlib.9.1.0"
+```
+
+`setup.sh` installs those packages, then resolves CoqHammer's remaining
+dependencies while ignoring the Rocq version constraints in the local opam
+files. This is the mechanism for the transitional case where `rocq-core` is
+published for an X.Y but `rocq-stdlib` is not yet, so the newest available
+stdlib (which builds against the newer core) must be pinned. Drop the override
+once every constrained package is on opam for that X.Y; the opam-file
+constraints then solve on their own.
+
+A legacy single-package pin is also honoured:
+
+```bash
+export COQHAMMER_ROCQ_PACKAGE=coq   # default: rocq-core for Rocq >= 9.0, else coq
 export COQHAMMER_ROCQ_VERSION=9.1.1
 ```
 
 When `COQHAMMER_ROCQ_VERSION` is set, `setup.sh` first installs that exact opam
-package version, then installs CoqHammer dependencies while ignoring only the
+package version, then installs CoqHammer dependencies while ignoring the
 Coq/Rocq version constraints from the local opam files.
 
 ## Build Rocq From Source
@@ -104,7 +122,7 @@ $PROJ_DIR/config/B/env.sh
 Examples:
 
 ```bash
-export COQHAMMER_ROCQ_VERSION=9.1.1
+export COQHAMMER_ROCQ_PACKAGES="rocq-core.9.2.0 rocq-stdlib.9.1.0"
 ```
 
 ```bash

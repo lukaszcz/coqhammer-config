@@ -6,8 +6,24 @@ set -euo pipefail
 # Configuration knobs:
 #   COQHAMMER_OPAM_SWITCH        default: $REPO_DIR, prefix: $REPO_DIR/_opam
 #   COQHAMMER_OCAML              default: ocaml-base-compiler.5.3.0
-#   COQHAMMER_ROCQ_PACKAGE       default: coq
-#   COQHAMMER_ROCQ_VERSION       unset to use opam file constraints; set to force an opam version
+#   COQHAMMER_ROCQ_PACKAGES      space-separated opam packages (each an optional
+#                                "pkg" or "pkg.version") to install explicitly
+#                                before resolving CoqHammer's remaining deps while
+#                                ignoring the Rocq version constraints in the opam
+#                                files. Use this to pin Rocq when the exact version
+#                                is not yet resolvable from the constraints alone
+#                                (e.g. rocq-core is on opam but rocq-stdlib is not
+#                                yet published for the same X.Y). Default: unset,
+#                                in which case the opam-file constraints are solved
+#                                directly. Since the Rocq rename (Rocq >= 9.0) the
+#                                relevant packages are rocq-core / rocq-stdlib; the
+#                                deprecated meta-package "coq" is used only for the
+#                                older Coq (< 9.0) branches.
+#   COQHAMMER_ROCQ_PACKAGE       legacy single-package name for the pin path below;
+#                                default: version-aware (rocq-core for Rocq >= 9.0,
+#                                otherwise coq). Prefer COQHAMMER_ROCQ_PACKAGES.
+#   COQHAMMER_ROCQ_VERSION       unset to use opam file constraints; set to force an
+#                                opam version of COQHAMMER_ROCQ_PACKAGE (legacy pin).
 #   COQHAMMER_ROCQ_SOURCE_REF    unset for opam package; set to an AGM-managed branch/tag for source build
 #   COQHAMMER_ROCQ_SOURCE_REPO   default: https://github.com/rocq-prover/rocq.git
 #   COQHAMMER_ROCQ_DEP_NAME      default: rocq, AGM dependency name under $PROJ_DIR/deps
@@ -25,7 +41,8 @@ set -euo pipefail
 
 switch="${COQHAMMER_OPAM_SWITCH:-$REPO_DIR}"
 ocaml_package="${COQHAMMER_OCAML:-ocaml-base-compiler.5.3.0}"
-rocq_package="${COQHAMMER_ROCQ_PACKAGE:-coq}"
+rocq_packages="${COQHAMMER_ROCQ_PACKAGES:-}"
+rocq_package="${COQHAMMER_ROCQ_PACKAGE:-}"
 rocq_version="${COQHAMMER_ROCQ_VERSION:-}"
 rocq_source_ref="${COQHAMMER_ROCQ_SOURCE_REF:-}"
 rocq_source_repo="${COQHAMMER_ROCQ_SOURCE_REPO:-https://github.com/rocq-prover/rocq.git}"
@@ -60,15 +77,51 @@ ensure_switch() {
   opam update --yes
 }
 
+# branch_rocq_version: the Rocq X.Y this branch targets, read from the Rocq
+# dependency constraint in coq-hammer.opam (e.g. "9.2" from
+# '"rocq-core" {>= "9.2" & < "9.3~"}', or from the legacy '"coq" {>= ...}').
+branch_rocq_version() {
+  sed -n -E \
+    's/^[[:space:]]*"(rocq-core|coq)"[[:space:]]*\{>= "([0-9]+\.[0-9]+).*/\2/p' \
+    coq-hammer.opam | head -n1
+}
+
+# default_rocq_package: the opam meta/core package name for this branch's Rocq.
+# Since the Rocq rename (Rocq >= 9.0) it is rocq-core; the "coq" package is the
+# deprecated shim kept only for the older Coq (< 9.0) branches.
+default_rocq_package() {
+  local v maj
+  v="$(branch_rocq_version)"
+  maj="${v%%.*}"
+  if [ -n "$maj" ] && [ "$maj" -ge 9 ] 2>/dev/null; then
+    echo "rocq-core"
+  else
+    echo "coq"
+  fi
+}
+
 install_opam_rocq() {
-  if [ -n "$rocq_version" ]; then
-    echo "Installing Rocq/Coq from opam into $switch: $rocq_package.$rocq_version"
-    opam install --yes "$rocq_package.$rocq_version"
+  # Packages to install explicitly before resolving the remaining CoqHammer
+  # dependencies. COQHAMMER_ROCQ_PACKAGES (a list) takes precedence; otherwise
+  # the legacy single-package pin (COQHAMMER_ROCQ_PACKAGE.COQHAMMER_ROCQ_VERSION)
+  # is used when a version is forced. Empty means "let the opam-file constraints
+  # solve on their own".
+  local pkgs=""
+  if [ -n "$rocq_packages" ]; then
+    pkgs="$rocq_packages"
+  elif [ -n "$rocq_version" ]; then
+    pkgs="${rocq_package:-$(default_rocq_package)}.$rocq_version"
+  fi
+
+  if [ -n "$pkgs" ]; then
+    echo "Installing Rocq from opam into $switch: $pkgs"
+    # shellcheck disable=SC2086  # word splitting is intentional: $pkgs is a list
+    opam install --yes $pkgs
     opam install --yes --deps-only \
       --ignore-constraints-on=coq,coq-core,coq-stdlib,coqide-server,rocq-runtime,rocq-core,rocq-stdlib \
       ./coq-hammer-tactics.opam ./coq-hammer.opam
   else
-    echo "Installing Rocq/Coq from opam into $switch using workspace opam constraints"
+    echo "Installing Rocq from opam into $switch using workspace opam constraints"
     opam install --yes --deps-only ./coq-hammer-tactics.opam ./coq-hammer.opam
   fi
 }

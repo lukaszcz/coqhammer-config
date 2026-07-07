@@ -9,7 +9,19 @@
 
 export COQHAMMER_OPAM_SWITCH="${COQHAMMER_OPAM_SWITCH:-$REPO_DIR}"
 export COQHAMMER_OCAML="${COQHAMMER_OCAML:-ocaml-base-compiler.5.3.0}"
-export COQHAMMER_ROCQ_PACKAGE="${COQHAMMER_ROCQ_PACKAGE:-coq}"
+
+# Rocq opam packages. Leave all unset for the normal flow, where the Rocq/Coq
+# version is resolved from the opam-file constraints of the checked-out branch.
+# Since the Rocq rename (Rocq >= 9.0) those constraints name rocq-core and
+# rocq-stdlib; the deprecated "coq" package applies only to older (< 9.0)
+# branches. Set COQHAMMER_ROCQ_PACKAGES (a space-separated "pkg[.version]" list)
+# to pin Rocq explicitly when the exact version is not yet resolvable from the
+# constraints alone -- e.g. rocq-core is published for X.Y but rocq-stdlib is
+# not, so the newest available stdlib must be pinned. COQHAMMER_ROCQ_PACKAGE /
+# COQHAMMER_ROCQ_VERSION are the legacy single-package pin (package defaults
+# version-aware: rocq-core for Rocq >= 9.0, else coq).
+export COQHAMMER_ROCQ_PACKAGES="${COQHAMMER_ROCQ_PACKAGES:-}"
+export COQHAMMER_ROCQ_PACKAGE="${COQHAMMER_ROCQ_PACKAGE:-}"
 export COQHAMMER_ROCQ_VERSION="${COQHAMMER_ROCQ_VERSION:-}"
 
 # Leave unset for the normal opam package flow. Set to an AGM-managed branch or
