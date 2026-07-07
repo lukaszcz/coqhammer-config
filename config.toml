@@ -1,2 +1,12 @@
 [project]
 name = "coqhammer"
+
+[review]
+runner = "agm run pi --provider openai-codex --model gpt-5.5 -p"
+
+[revise]
+runner = "agm run pi --provider openai-codex --model gpt-5.5 -p"
+
+[loop.pi]
+selector = "agm run pi --provider openai-codex --model gpt-5.5 -p"
+runner = "agm run pi --provider openai-codex --model gpt-5.5 -p"

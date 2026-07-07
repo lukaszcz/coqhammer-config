@@ -1,0 +1,8 @@
+{
+  "network": {
+    "allowedDomains": [
+      "coqhammer.github.io",
+      "rocq-prover.org"
+    ]
+  }
+}
