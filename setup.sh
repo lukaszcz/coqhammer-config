@@ -12,6 +12,8 @@ set -euo pipefail
 #   COQHAMMER_ROCQ_SOURCE_REPO   default: https://github.com/rocq-prover/rocq.git
 #   COQHAMMER_ROCQ_DEP_NAME      default: rocq, AGM dependency name under $PROJ_DIR/deps
 #   COQHAMMER_ROCQ_SOURCE_DIR    unset to use agm dep; set to an existing local checkout override
+#   COQHAMMER_DUNE_VERSION       unset to auto-select; set to force an opam dune version for
+#                                the source build (see ensure_build_dune below)
 #
 # Since Rocq 9.0 the standard library lives in its own repository and must be
 # built separately when Rocq is built from source. These knobs control it and
@@ -33,6 +35,11 @@ stdlib_source_ref="${COQHAMMER_STDLIB_SOURCE_REF:-$rocq_source_ref}"
 stdlib_source_repo="${COQHAMMER_STDLIB_SOURCE_REPO:-https://github.com/rocq-prover/stdlib.git}"
 stdlib_dep_name="${COQHAMMER_STDLIB_DEP_NAME:-stdlib}"
 stdlib_source_dir="${COQHAMMER_STDLIB_SOURCE_DIR:-}"
+dune_version="${COQHAMMER_DUNE_VERSION:-}"
+
+# Newest dune that still ships the legacy `coq` build language; dune 3.24
+# deleted it in favour of the `rocq` language.
+dune_last_coq_lang="3.23.1"
 
 # AGM injects env vars for declared deps (e.g. ROCQ=$PROJ_DIR/deps/rocq/master
 # for a `rocq` dep). opam and rocq_makefile both honour these: rocq_makefile
@@ -131,11 +138,42 @@ checkout_source() {
   printf '%s\n' "$dir"
 }
 
+# Ensure the switch has a dune that can build the given Rocq source tree.
+#
+# Rocq's opam files only constrain `dune {>= "3.8"}`, so opam otherwise pulls in
+# the newest dune available. That breaks source builds of every Rocq release up
+# to 9.2, whose dune-project declares the legacy `(using coq ...)` build
+# language that dune 3.24 deleted ("Extension coq was deleted in the 3.24
+# version of the dune language"). Such trees need a dune < 3.24, where the `coq`
+# extension still exists (through 3.23). Newer Rocq (10.x / master) migrated to
+# the `(using rocq ...)` language and builds fine with the latest dune, so only
+# pin when the source actually uses the legacy language. dune 3.23 also provides
+# the `rocq 0.11` language CoqHammer's own dune files use (available since dune
+# 3.21), so a single pinned dune serves both the Rocq and CoqHammer builds.
+#
+# COQHAMMER_DUNE_VERSION overrides the auto-selection for either case.
+ensure_build_dune() {
+  local source_dir="$1"
+  local requested="$dune_version"
+
+  if [ -z "$requested" ] && grep -q '^(using coq ' "$source_dir/dune-project" 2>/dev/null; then
+    echo "Rocq source uses the legacy dune 'coq' build language; pinning a compatible dune"
+    requested="$dune_last_coq_lang"
+  fi
+
+  if [ -n "$requested" ]; then
+    echo "Installing dune.$requested into $switch"
+    opam install --yes "dune.$requested"
+  fi
+}
+
 install_source_rocq() {
   echo "Building Rocq from source ref '$rocq_source_ref' in $switch"
   if ! rocq_source_dir="$(checkout_source "$rocq_dep_name" "$rocq_source_ref" "$rocq_source_repo" "$rocq_source_dir")"; then
     exit 1
   fi
+
+  ensure_build_dune "$rocq_source_dir"
 
   opam install --yes conf-g++ || opam install --yes conf-clang
 
